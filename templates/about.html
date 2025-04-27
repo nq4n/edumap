@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - Building Map</title>
+    <!-- Link external CSS -->
+    <link rel="stylesheet" href="{{ url_for('serve_static', filename='css/about.css') }}">
+</head>
+<body>
+
+    <main>
+        <h1>About This Project</h1>
+
+        <section id="about-project">
+            <h2>Purpose</h2>
+            <p>This project is an interactive web application designed as a "University Building Lab Locator". It presents users with a visual SVG map of a building floor plan. Users can interact with the map by clicking on specific rooms or labs, or by using a search bar to find locations based on room number, description, or type. Selecting a room displays detailed information about it.</p>
+        </section>
+
+        <section id="features">
+            <h2>Key Features</h2>
+            <ul class="feature-list">
+                <li>Interactive SVG Map: Displays a clickable vector map (lab.svg) of the building layout.</li>
+                <li>Room Detail Display: Shows information (name, location, description, capacity, equipment) fetched from a data source (data.xlsx) when a room is clicked on the map or selected from search results.</li>
+                <li>Search Functionality: Allows users to search for rooms by number, description keywords, or room type, with live results appearing below the search bar.</li>
+                <li>Visual Highlighting: Clearly highlights the selected room on the SVG map using styling changes (e.g., green fill).</li>
+                <li>Data-Driven: Room details are managed externally in an Excel file (data.xlsx) and loaded by the backend.</li>
+                <li>Responsive Feedback: Provides loading indicators and error messages to the user during interactions.</li>
+            </ul>
+        </section>
+
+        <!-- === MODIFIED TEAM SECTION === -->
+        <section id="team" class="team-section">
+            <h2>Project Team</h2>
+
+            <div class="team-cards-container">
+
+                <!-- Card 1 -->
+                <div class="team-card">
+                    <!-- Corrected image extension typo -->
+                    <img src="{{ url_for('static', filename='memberPhotos/Muaiyad.jpg') }}" alt="Team Member 1 Photo" class="team-photo">
+                    <h3>Muaiyad</h3>
+                    <p class="team-role">Software Developer</p>
+                    <p><strong>Email:</strong><a href="mailto:s136629@student.squ.edu.om">s136629@student.squ.edu.om</a></p>
+                    <p><strong>Phone:</strong> +968 991996750</p>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="team-card">
+                    <img src="{{ url_for('static', filename='memberPhotos/Khamis.jpg') }}"  alt="Team Member 2 Photo" class="team-photo">
+                    <h3>Khamis Rashid Al Essaie</h3>
+                    <p class="team-role">resource collector(photo and description)</p> <!-- Example Role -->
+                    <p><strong>Email:</strong><a href="mailto:s138485@student.squ.edu.om">s138485@student.squ.edu.om</a></p>
+                    <p><strong>Phone:</strong> +968 94635940</p>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="team-card">
+                    <img src="{{ url_for('static', filename='memberPhotos/feras.jpg') }}"  alt="Team Member 3 Photo" class="team-photo">
+                    <h3>Feras Abdullah Alshibli </h3>
+                    <p class="team-role">data collector</p> <!-- Example Role -->
+                    <p><strong>Email:</strong><a href="mailto:S138810@student.squ.edu.om">S138810@student.squ.edu.om</a></p>
+                    <p><strong>Phone:</strong>+968 94635940 </p> <!-- Check if phone is same as Khamis? -->
+                </div>
+
+                <!-- Card 4 -->
+                <div class="team-card">
+                    <img src="{{ url_for('static', filename='memberPhotos/Mohammed.jpg') }}"  alt="Team Member 4 Photo" class="team-photo">
+                    <h3>Mohammed Ali Al Foutise </h3>
+                    <p class="team-role">resource  and data collector</p> <!-- Example Role -->
+                    <p><strong>Email:</strong><a href="mailto:S138157@student.squ.edu.om">S138157@student.squ.edu.om</a></p>
+                    <p><strong>Phone:</strong>+968 94082045 </p>
+                </div>
+
+                <!-- Card 5 -->
+                <div class="team-card">
+                    <img src="{{ url_for('static', filename='memberPhotos/Abdullah.jpg') }}" alt="Team Member 5 Photo" class="team-photo">
+                    <h3>Abdullah Salim Al Bahri</h3>
+                    <p class="team-role">data collector</p> <!-- Example Role -->
+                    <!-- Check if email is same as Feras? -->
+                    <p><strong>Email:</strong><a href="mailto:S138810@student.squ.edu.om">S138810@student.squ.edu.om</a></p>
+                    <p><strong>Phone:</strong>+968 98122324</p>
+                </div>
+
+            </div> <!-- End team-cards-container -->
+        </section>
+        <!-- === END MODIFIED TEAM SECTION === -->
+
+        <section id="technology">
+            <h2>Technology Used</h2>
+            <ul class="tech-list">
+                <li><strong>Backend Framework:</strong> Flask (Python)</li>
+                <li><strong>Programming Language:</strong> Python</li>
+                <li><strong>Frontend Languages:</strong> HTML5, CSS3, JavaScript</li>
+                <li><strong>Data Handling (Python):</strong> Pandas (for reading and processing Excel data), NumPy (for handling data types)</li>
+                <li><strong>Map Format:</strong> SVG (Scalable Vector Graphics)</li>
+                <li><strong>Data Storage Format:</strong> Microsoft Excel (.xlsx)</li>
+                <li><strong>Data Exchange Format:</strong> JSON (between frontend JavaScript and backend Flask API endpoints)</li>
+            </ul>
+        </section>
+
+        <div class="center-link">
+            <a href="{{ url_for('index') }}" class="back-link">Back to Map</a>
+        </div>
+
+    </main>
+
+</body>
+</html>

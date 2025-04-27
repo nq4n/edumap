@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Building Map</title>
+    <!-- Link external CSS -->
+    <link rel="stylesheet" href="{{ url_for('serve_static', filename='css/index.css') }}">
+</head>
+<body>
+    <h1>University Building Lab Locator</h1>
+
+    <div class="floor-selector-container">
+        {% for floor_key, config in map_config.items() %}
+            <button class="floor-selector {% if floor_key == default_floor %}active{% endif %}"
+                    data-floor="{{ floor_key }}" data-mapfile="{{ config.file }}">
+                {{ config.name }}
+            </button>
+        {% endfor %}
+    </div>
+
+    <div class="main-content-area">
+        <div class="info-column">
+            <div class="search-container">
+                <input type="search" id="search-input" placeholder="Search by room number, name, or type...">
+                <div id="search-results"></div>
+            </div>
+            <div id="info-panel">
+                <div id="info-content">
+                    <!-- Initial prompt message moved to JS showPrompt() -->
+                </div>
+            </div>
+        </div>
+        <div class="map-column">
+            <div class="map-container">
+                <h2 id="map-title">Building Map</h2>
+                {% set default_map_file = map_config.get(default_floor, {}).get('file') %}
+                {% if svg_exists and default_map_file %}
+                <object id="svg-container" data="{{ url_for('serve_static', filename=default_map_file) }}" type="image/svg+xml">
+                    Your browser does not support SVG or the map file is missing.
+                </object>
+                {% else %}
+                <p class="error">Default building map file ({{ default_map_file or 'N/A' }}) not found or not configured.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>education collage building &copy; 2024 | <a href="{{ url_for('about_page') }}">About Us</a></p>
+    </footer>
+
+    <!-- Define JS variables needed by the external script -->
+    <script>
+        const initialDefaultFloor = "{{ default_floor }}";
+        const initialMapFile = "{{ map_config.get(default_floor, {}).get('file', '') }}";
+    </script>
+    <!-- Link external JavaScript file (using the name you provided) -->
+    <script src="{{ url_for('serve_static', filename='js/main.js') }}" defer></script>
+</body>
+</html>
