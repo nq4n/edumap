@@ -297,4 +297,4 @@ if __name__ == "__main__":
     else:
          print("CRITICAL WARNING: Default map file not configured in MAP_CONFIG.")
 
-    app.run(debug=True)
+    app.run(debug=false)
