@@ -4,6 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>404 - Page Not Found</title>
+    <style>
+        body {
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: auto;
+        }
+        
+        h1 {
+            font-size: 100px;
+            margin-bottom: 20px;
+            color: #ff4c4c;
+        }
+        
+        p {
+            font-size: 20px;
+            color: #333;
+        }
+        
+        .home-link {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        
+        .home-link:hover {
+            background-color: #45a049;
+        }
+</style>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/404.css') }}">
 </head>
 <body>
