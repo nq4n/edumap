@@ -27,7 +27,7 @@ DEFAULT_FLOOR = 'ground'
 def load_excel_data(floor_key):
     """Loads and cleans data from an Excel file specific to the given floor."""
     # --- Define naming convention for floor-specific files ---
-    excel_filename = f"databse/{floor_key}.xlsx"
+    excel_filename = "data.xlsx"
     full_excel_path = os.path.join(static_folder_path, excel_filename)
     print(f"[*] Attempting to load Excel data for floor '{floor_key}' from: {full_excel_path}")
 
