@@ -224,17 +224,32 @@ footer { text-align: center; margin-top: 30px; color: #7f8c8d; font-size: 0.9em;
     line-height: 30px;
     text-align: center;
     padding-bottom: 2px; /* Adjust vertical alignment */
-}
-
-.modal-close:hover { color: #000; background: rgba(255, 255, 255, 0.9); }
-
-/* --- Disable specific SVG paths --- */
-#svg-container #path32,
-#svg-container #path251 {
-    pointer-events: none; /* Ignore mouse interactions */
-    cursor: default !important; /* Ensure default cursor */
-    /* Optional: Style to look disabled */
-    fill: #e0e0e0 !important; /* Lighter grey fill */
+}#svg-container #g2,
+#svg-container #path32, /* Add path32 and path251 here */
+#svg-container #path251,
+#svg-container #g164 {
+   
+    cursor: default !important; /* Show default cursor */
+    pointer-events: auto !important; /* Ensure clicks are allowed */
+    /* Add styles to make them look non-interactive */
+    fill: #e0e0e0 !important; /* Light grey fill */
     stroke: #bdbdbd !important; /* Grey stroke */
     opacity: 0.7 !important; /* Slightly transparent */
+    transition: none !important; /* Prevent any transitions */
 }
+
+/* Keep the SAME style on hover for non-interactive elements */
+#svg-container #path32:hover,
+#svg-container #path251:hover,
+#svg-container #g2:hover,
+#svg-container #g164:hover {
+    opacity: 0.7 !important; /* Keep the SAME opacity on hover */
+    /* Explicitly keep fill and stroke the same too, just in case */
+    fill: #e0e0e0 !important;
+    stroke: #bdbdbd !important;
+ }
+ 
+/* General hover effect for OTHER interactive elements */
+
+ 
+ .modal-close:hover { color: #000; background: rgba(255, 255, 255, 0.9); }

@@ -52,6 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function showError(message) { infoContent.innerHTML = `<p class="error">${message}</p>`; }
     function showLoading() { infoContent.innerHTML = '<p class="loading">Loading details...</p>'; }
     function showPrompt() { infoContent.innerHTML = '<p class="prompt">Click on any lab in the map or search above to view details...</p>'; }
+    function showNonInteractiveMessage() { infoContent.innerHTML = '<p class="prompt">Please click on a valid room or area, not structural elements.</p>'; } // New function for the message
     function clearSearchResults() { searchResultsContainer.innerHTML = ''; searchResultsContainer.style.display = 'none'; }
     function getElementStyles(element) { if (!svgDoc || !svgDoc.defaultView) return {}; const computedStyle = svgDoc.defaultView.getComputedStyle(element, null); return { fill: element.style.fill || computedStyle.getPropertyValue('fill'), stroke: element.style.stroke || computedStyle.getPropertyValue('stroke'), strokeWidth: element.style.strokeWidth || computedStyle.getPropertyValue('stroke-width'), opacity: element.style.opacity || computedStyle.getPropertyValue('opacity') }; }
     function resetElementStyles(element) { const styles = originalStyles.get(element.id); if (styles) { element.style.fill = styles.fill; element.style.stroke = styles.stroke; element.style.strokeWidth = styles.strokeWidth; element.style.opacity = styles.opacity; } else { element.style.fill = ''; element.style.stroke = ''; element.style.strokeWidth = ''; element.style.opacity = ''; } }
@@ -157,20 +158,26 @@ document.addEventListener('DOMContentLoaded', function() {
         if (clickableElements.length === 0) { console.warn("No clickable elements with IDs found in the SVG map:", currentMapFile); return; }
         clickableElements.forEach(element => {
             // --- ADDED: Skip specific non-interactive paths ---
-            const nonInteractiveIds = ['path32', 'path251', 'g2', 'g164']; // Added g2 and g164
-            if (nonInteractiveIds.includes(element.id)) {
-                console.log(`Skipping event listeners for non-interactive element: ${element.id}`);
-                return; // Don't add listeners to these IDs
-            }
+            const nonInteractiveIds = ['path32', 'path251', 'g2', 'g164']; // Keep this list defined here
             // --- END ADDED ---
-            if (element.id && !originalStyles.has(element.id)) { originalStyles.set(element.id, getElementStyles(element)); }
-            element.style.cursor = 'pointer'; element.style.transition = 'fill 0.2s ease, stroke 0.2s ease, opacity 0.2s ease, stroke-width 0.2s ease';
-            element.addEventListener('mouseenter', function() { if (!this.classList.contains('selected-element')) { if (this.id && !originalStyles.has(this.id)) { originalStyles.set(this.id, getElementStyles(this)); } this.style.opacity = '0.7'; } });
-            element.addEventListener('mouseleave', function() { if (!this.classList.contains('selected-element')) { resetElementStyles(this); } });
-            element.addEventListener('click', function(event) {
-                event.stopPropagation(); const pathId = this.id; if (!pathId) return;
-                const previousSelected = svgDoc.querySelector('.selected-element'); if(previousSelected) { previousSelected.classList.remove('selected-element'); resetElementStyles(previousSelected); }
-                this.classList.add('selected-element'); if (!originalStyles.has(pathId)) { originalStyles.set(pathId, getElementStyles(this)); }
+            element.style.cursor = 'pointer'; //element.style.transition = 'fill 0.2s ease, stroke 0.2s ease, opacity 0.2s ease, stroke-width 0.2s ease';
+            element.addEventListener('mouseenter', function() {if (!this.classList.contains('selected-element')) { if (this.id && !originalStyles.has(this.id)) { originalStyles.set(this.id, getElementStyles(this)); } /* this.style.opacity = '0.7'; */ }});
+            element.addEventListener('mouseleave', function() {});
+            element.addEventListener('click', function(event) {if (!this.classList.contains('selected-element')) { if (this.id && !originalStyles.has(this.id)) { originalStyles.set(this.id, getElementStyles(this)); } /* this.style.opacity = '0.7'; */ }
+
+                event.stopPropagation(); 
+                const pathId = this.id; 
+                // --- ADDED: Double-check ID inside the handler ---
+                if (!pathId) return; // Exit if no ID
+
+                if (nonInteractiveIds.includes(pathId)) {
+                    console.log(`Clicked non-interactive element: ${pathId}`);
+                    showNonInteractiveMessage(); // Show the message
+                    return; // Stop processing for these IDs
+                }
+                // --- END ADDED ---
+                const previousSelected = svgDoc.querySelector('.selected-element'); if(previousSelected && previousSelected !== this) { previousSelected.classList.remove('selected-element'); resetElementStyles(previousSelected); } // Deselect previous only if different
+                this.classList.add('selected-element'); if (!originalStyles.has(pathId)) { originalStyles.set(pathId, getElementStyles(this)); } // Store original style if needed
                 this.style.fill = '#02c7ffff'; this.style.stroke = '#ffffffff'; this.style.strokeWidth = '1.5px'; this.style.opacity = '1';
                 showLoading();
                 fetch("/get-details", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path_id: pathId, floor: currentFloor }), })
