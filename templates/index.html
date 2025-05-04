@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Building Map</title>
     <!-- Link external CSS -->
-    <link rel="stylesheet" href="{{ url_for('serve_static', filename='styles/index.css') }}">
+<!-- This is the CORRECT line -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/index.css') }}">
+
 </head>
 <body>
     <h1>University Building Lab Locator</h1>
