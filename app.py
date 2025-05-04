@@ -4,6 +4,10 @@ import os
 import pandas as pd
 from functools import lru_cache
 import numpy as np
+# --- Add HEIC support imports ---
+from PIL import Image
+import pillow_heif
+# --------------------------------
 
 app = Flask(__name__)
 
@@ -97,8 +101,8 @@ def get_details():
     if not path_id: return jsonify({"error": "Missing path_id"}), 400
 
     df = load_excel_data(floor)
-    # --- ADD THIS LINE ---
-    image_url = find_room_image_url(path_id) # Check for image
+    # --- Find ALL images for the room ---
+    image_urls = find_room_image_urls(path_id) # Check for images (plural)
 
     if df.empty:
          print(f"Warning: No data loaded for floor '{floor}' when getting details for {path_id}.")
@@ -108,7 +112,7 @@ def get_details():
              "description": f"Details unavailable (Data source issue for {floor.capitalize()} floor)",
              "location": "N/A", "capacity": "N/A", "equipment": [], "path_id": path_id,
              "floor": floor.capitalize(),
-             "image_url": image_url # Add image_url here too
+             "image_urls": image_urls # Use plural here
              })
 
     matching_row = df[df['room no.'] == str(path_id)]
@@ -128,8 +132,8 @@ def get_details():
             "name": f"Room {path_id} ({room_type})" if room_type and room_type != 'N/A' else f"Room {path_id}",
             "location": location, "description": description, "type": room_type,
             "capacity": capacity, "equipment": equipment_list, "path_id": path_id,
-            "floor": floor.capitalize(),
-            "image_url": image_url # Add image_url here
+            "floor": floor.capitalize(), # Add image_urls here
+            "image_urls": image_urls
         }
     else:
         # --- MODIFY the detail dictionary in the else block ---
@@ -138,32 +142,82 @@ def get_details():
             "description": f"Details not found for this room ID on the {floor.capitalize()} floor.",
             "location": "N/A", "capacity": "N/A", "equipment": [], "path_id": path_id,
             "floor": floor.capitalize(),
-            "image_url": image_url # Add image_url here too
+            "image_urls": image_urls # Use plural here too
         }
     return jsonify(detail)
 
+# --- Register HEIF opener with Pillow ---
+pillow_heif.register_heif_opener()
+# --------------------------------------
 
-def find_room_image_url(path_id):
-    """Checks for an image file matching path_id and returns its static URL."""
-    possible_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'] # Add more if needed
-    for ext in possible_extensions:
-        filename = f"{path_id}{ext}"
-        # Construct the relative path for url_for (e.g., photoLab/101.jpg)
-        relative_path = os.path.join(ROOM_IMAGES_FOLDER, filename).replace("\\", "/") # Use forward slashes for URL
-        # Construct the full path for os.path.exists
-        full_path = os.path.join(static_folder_path, ROOM_IMAGES_FOLDER, filename)
+def find_room_image_urls(path_id):
+    """
+    Finds all images matching the pattern 'path_id_*.ext' or 'path_id.ext',
+    converts HEIC if necessary, and returns a list of static URLs for web-friendly formats.
+    """
+    image_urls = []
+    image_dir = os.path.join(static_folder_path, ROOM_IMAGES_FOLDER)
+    if not os.path.isdir(image_dir):
+        print(f"Warning: Image directory not found: {image_dir}")
+        return []
 
-        if os.path.exists(full_path):
-            try:
-                # Generate URL using the relative path
-                image_url = url_for('serve_static', filename=relative_path, _external=False) # Use relative URL
-                print(f"[*] Found image for {path_id}: {relative_path} -> {image_url}")
-                return image_url
-            except Exception as e:
-                print(f"Error generating URL for {relative_path}: {e}")
-                return None # Avoid crashing if url_for fails unexpectedly
-    print(f"[*] No image found for {path_id} in {os.path.join(static_folder_path, ROOM_IMAGES_FOLDER)}")
-    return None # Return None if no image found
+    web_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+    heic_extensions = ['.heic', '.heif']
+
+    # Use os.listdir to find all files and filter by prefix
+    for filename in os.listdir(image_dir):
+        # --- MODIFIED: Check if path_id is simply contained within the filename ---
+        # Note: This is broader and might match unintended files if IDs are short (e.g., path_id '10' matching 'Lab_101.jpg').
+        # The previous startswith check was safer against this. Adjust if needed.
+        if str(path_id) in filename:
+            base, ext = os.path.splitext(filename)
+            ext = ext.lower()
+            full_path = os.path.join(image_dir, filename)
+            relative_path_for_url = os.path.join(ROOM_IMAGES_FOLDER, filename).replace("\\", "/")
+
+            # If it's already a web format, return its URL directly
+            if ext in web_extensions:
+                try:
+                    image_url = url_for('serve_static', filename=relative_path_for_url, _external=False)
+                    if image_url not in image_urls: # Avoid duplicates if somehow generated
+                        image_urls.append(image_url)
+                        print(f"[*] Found web image for {path_id}: {relative_path_for_url} -> {image_url}")
+                except Exception as e:
+                    print(f"Error generating URL for {relative_path_for_url}: {e}")
+                    continue # Try next file
+
+            # If it's HEIC/HEIF, attempt conversion
+            elif ext in heic_extensions:
+                # Keep original base name (e.g., 101_view1) for converted file
+                converted_filename = f"{base}.jpg"
+                converted_full_path = os.path.join(image_dir, converted_filename)
+                converted_relative_path = os.path.join(ROOM_IMAGES_FOLDER, converted_filename).replace("\\", "/")
+
+                # Check if converted file already exists
+                if os.path.exists(converted_full_path):
+                    print(f"[*] Found pre-converted image for {path_id}: {converted_relative_path}")
+                    converted_url = url_for('serve_static', filename=converted_relative_path, _external=False)
+                    if converted_url not in image_urls:
+                        image_urls.append(converted_url)
+                    continue # Move to next file
+
+                # Convert if it doesn't exist
+                try:
+                    print(f"[*] Found HEIC image for {path_id}: {relative_path_for_url}. Attempting conversion...")
+                    img = Image.open(full_path)
+                    # Ensure image is in RGB mode before saving as JPEG
+                    if img.mode in ("RGBA", "P"): img = img.convert("RGB")
+                    img.save(converted_full_path, format="JPEG", quality=85) # Save as JPEG
+                    print(f"[*] Successfully converted and saved: {converted_relative_path}")
+                    return url_for('serve_static', filename=converted_relative_path, _external=False)
+                except Exception as e:
+                    print(f"ERROR: Failed to convert HEIC file {filename}: {e}")
+                    continue # Skip this file if conversion fails
+
+    if not image_urls:
+        print(f"[*] No images found for {path_id} in {image_dir}")
+
+    return image_urls # Return the list (might be empty)
 
 
 @app.route("/search")
