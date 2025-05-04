@@ -198,3 +198,4 @@ document.addEventListener('DOMContentLoaded', function() {
     } else { console.error("SVG object element not found in HTML."); showError("Map display element is missing in the HTML structure."); }
 
 }); // End DOMContentLoaded
+
