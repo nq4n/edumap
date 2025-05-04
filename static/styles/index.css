@@ -135,3 +135,106 @@ footer { text-align: center; margin-top: 30px; color: #7f8c8d; font-size: 0.9em;
 .modal-close:hover {
     color: #000;
 }
+
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Darker overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Ensure it's on top */
+    opacity: 0; /* Start hidden for transition */
+    transition: opacity 0.3s ease;
+}
+
+.modal-overlay.visible {
+    opacity: 1; /* Fade in */
+}
+
+/* Adjust modal content for slider */
+.modal-content.slider-modal-content {
+    background-color: #fff;
+    padding: 15px; /* Adjust padding */
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    position: relative;
+    max-width: 90vw; /* Limit width */
+    max-height: 90vh; /* Limit height */
+    display: flex; /* Use flex for layout */
+    flex-direction: column; /* Stack close button and slider */
+    overflow: hidden; /* Prevent content spill */
+}
+
+.slider-container {
+    position: relative; /* Context for absolute positioned buttons */
+    display: flex;
+    align-items: center; /* Vertically center image and buttons */
+    justify-content: center; /* Horizontally center image */
+    flex-grow: 1; /* Take available vertical space */
+    margin-top: 10px; /* Space from close button */
+    min-height: 200px; /* Ensure minimum height */
+}
+
+.slider-image-display {
+    display: block;
+    max-width: 100%;
+    max-height: calc(85vh - 60px); /* Adjust based on padding/margins */
+    object-fit: contain; /* Scale image nicely */
+}
+
+.slider-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    padding: 12px 18px; /* Slightly larger buttons */
+    font-size: 28px; /* Larger arrow */
+    cursor: pointer;
+    z-index: 10;
+    border-radius: 5px;
+    transition: background-color 0.2s ease;
+}
+
+.slider-button:hover:not(:disabled) { background-color: rgba(0, 0, 0, 0.8); }
+.slider-button:disabled { opacity: 0.3; cursor: not-allowed; }
+.slider-prev { left: 10px; }
+.slider-next { right: 10px; }
+
+/* Close button styling (ensure it's above buttons) */
+.modal-close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 30px;
+    font-weight: bold;
+    color: #555;
+    cursor: pointer;
+    z-index: 20; /* Above slider buttons */
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    line-height: 30px;
+    text-align: center;
+    padding-bottom: 2px; /* Adjust vertical alignment */
+}
+
+.modal-close:hover { color: #000; background: rgba(255, 255, 255, 0.9); }
+
+/* --- Disable specific SVG paths --- */
+#svg-container #path32,
+#svg-container #path251 {
+    pointer-events: none; /* Ignore mouse interactions */
+    cursor: default !important; /* Ensure default cursor */
+    /* Optional: Style to look disabled */
+    fill: #e0e0e0 !important; /* Lighter grey fill */
+    stroke: #bdbdbd !important; /* Grey stroke */
+    opacity: 0.7 !important; /* Slightly transparent */
+}

@@ -100,6 +100,14 @@ def get_details():
 
     if not path_id: return jsonify({"error": "Missing path_id"}), 400
 
+    # --- ADDED: Check for specifically disabled paths ---
+    disabled_paths = ['path32', 'path251']
+    if path_id in disabled_paths:
+        print(f"[*] Request for disabled path '{path_id}'. Returning 'Not Available'.")
+        return jsonify({"name": f"Area {path_id}", "description": "This area is not interactive.", "location": "N/A", "capacity": "N/A", "equipment": [], "path_id": path_id, "floor": floor.capitalize(), "image_urls": []}), 200 # Return 200 OK, but with specific message
+    # --- END ADDED ---
+
+
     df = load_excel_data(floor)
     # --- Find ALL images for the room ---
     image_urls = find_room_image_urls(path_id) # Check for images (plural)

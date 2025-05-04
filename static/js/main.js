@@ -57,36 +57,82 @@ document.addEventListener('DOMContentLoaded', function() {
     function resetElementStyles(element) { const styles = originalStyles.get(element.id); if (styles) { element.style.fill = styles.fill; element.style.stroke = styles.stroke; element.style.strokeWidth = styles.strokeWidth; element.style.opacity = styles.opacity; } else { element.style.fill = ''; element.style.stroke = ''; element.style.strokeWidth = ''; element.style.opacity = ''; } }
 
     // --- NEW: Function to show image modal ---
-    function showImageModal(imageUrl, altText) {
+    // --- MODIFIED: Function to show image slider modal ---
+    function showImageModal(imageUrls, startIndex) {
         // Remove existing modal if any
         const existingModal = document.querySelector('.modal-overlay');
         if (existingModal) {
             existingModal.remove();
         }
 
+        if (!imageUrls || imageUrls.length === 0) return; // Don't show if no images
+
         // Create modal elements
         const modalOverlay = document.createElement('div');
         modalOverlay.className = 'modal-overlay';
 
         const modalContent = document.createElement('div');
-        modalContent.className = 'modal-content';
+        // Add a specific class for slider styling
+        modalContent.className = 'modal-content slider-modal-content';
 
         const modalClose = document.createElement('span');
         modalClose.className = 'modal-close';
         modalClose.innerHTML = '&times;'; // 'x' character
 
-        const modalImage = document.createElement('img');
-        modalImage.className = 'modal-image';
-        modalImage.src = imageUrl;
-        modalImage.alt = altText || 'Large room image';
+        // --- Slider Elements ---
+        const sliderContainer = document.createElement('div');
+        sliderContainer.className = 'slider-container';
+
+        const imageDisplay = document.createElement('img');
+        imageDisplay.className = 'slider-image-display';
+        // src and alt will be set by updateSlider
+
+        const prevButton = document.createElement('button');
+        prevButton.className = 'slider-button slider-prev';
+        prevButton.innerHTML = '&#10094;'; // Left arrow
+        prevButton.setAttribute('aria-label', 'Previous image');
+
+        const nextButton = document.createElement('button');
+        nextButton.className = 'slider-button slider-next';
+        nextButton.innerHTML = '&#10095;'; // Right arrow
+        nextButton.setAttribute('aria-label', 'Next image');
+
+        // --- Slider Logic ---
+        let currentIndex = startIndex;
+
+        function updateSlider() {
+            if (currentIndex >= 0 && currentIndex < imageUrls.length) {
+                imageDisplay.src = imageUrls[currentIndex];
+                imageDisplay.alt = `Image ${currentIndex + 1} of ${imageUrls.length}`;
+            }
+            // Disable/enable buttons at ends
+            prevButton.disabled = currentIndex <= 0;
+            nextButton.disabled = currentIndex >= imageUrls.length - 1;
+        }
+
+        prevButton.addEventListener('click', () => {
+            if (currentIndex > 0) { currentIndex--; updateSlider(); }
+        });
+
+        nextButton.addEventListener('click', () => {
+            if (currentIndex < imageUrls.length - 1) { currentIndex++; updateSlider(); }
+        });
+
+        // Assemble slider
+        sliderContainer.appendChild(prevButton);
+        sliderContainer.appendChild(imageDisplay);
+        sliderContainer.appendChild(nextButton);
 
         // Assemble modal
         modalContent.appendChild(modalClose);
-        modalContent.appendChild(modalImage);
+        modalContent.appendChild(sliderContainer); // Add slider instead of single image
         modalOverlay.appendChild(modalContent);
 
         // Add to body
         document.body.appendChild(modalOverlay);
+
+        // Initial image and button state setup
+        updateSlider();
 
         // Show modal with transition
         requestAnimationFrame(() => modalOverlay.classList.add('visible')); // Trigger transition
@@ -110,6 +156,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const clickableElements = svgDoc.querySelectorAll('path[id], rect[id], circle[id], polygon[id], g[id]');
         if (clickableElements.length === 0) { console.warn("No clickable elements with IDs found in the SVG map:", currentMapFile); return; }
         clickableElements.forEach(element => {
+            // --- ADDED: Skip specific non-interactive paths ---
+            const nonInteractiveIds = ['path32', 'path251'];
+            if (nonInteractiveIds.includes(element.id)) {
+                console.log(`Skipping event listeners for non-interactive element: ${element.id}`);
+                return; // Don't add listeners to these IDs
+            }
+            // --- END ADDED ---
             if (element.id && !originalStyles.has(element.id)) { originalStyles.set(element.id, getElementStyles(element)); }
             element.style.cursor = 'pointer'; element.style.transition = 'fill 0.2s ease, stroke 0.2s ease, opacity 0.2s ease, stroke-width 0.2s ease';
             element.addEventListener('mouseenter', function() { if (!this.classList.contains('selected-element')) { if (this.id && !originalStyles.has(this.id)) { originalStyles.set(this.id, getElementStyles(this)); } this.style.opacity = '0.7'; } });
@@ -118,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 event.stopPropagation(); const pathId = this.id; if (!pathId) return;
                 const previousSelected = svgDoc.querySelector('.selected-element'); if(previousSelected) { previousSelected.classList.remove('selected-element'); resetElementStyles(previousSelected); }
                 this.classList.add('selected-element'); if (!originalStyles.has(pathId)) { originalStyles.set(pathId, getElementStyles(this)); }
-                this.style.fill = '#2ecc71'; this.style.stroke = '#27ae60'; this.style.strokeWidth = '1.5px'; this.style.opacity = '1';
+                this.style.fill = '#02c7ffff'; this.style.stroke = '#ffffffff'; this.style.strokeWidth = '1.5px'; this.style.opacity = '1';
                 showLoading();
                 fetch("/get-details", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path_id: pathId, floor: currentFloor }), })
                 .then(response => { if (!response.ok) { return response.json().then(err => { throw new Error(err.error || `HTTP error! Status: ${response.status}`); }).catch(() => { throw new Error(`HTTP error! Status: ${response.status}`); }); } return response.json(); })
@@ -180,9 +233,18 @@ document.addEventListener('DOMContentLoaded', function() {
     infoContent.addEventListener('click', function(event) {
         // Check if the clicked element is an image with the specific class
         if (event.target.matches('.clickable-room-image')) {
-            const imageUrl = event.target.src;
-            const altText = event.target.alt;
-            showImageModal(imageUrl, altText);
+            const clickedImage = event.target;
+            const gallery = clickedImage.closest('.room-image-gallery'); // Find the gallery container
+            if (!gallery) return; // Exit if structure is wrong
+
+            // Find all images within the same gallery
+            const allImages = gallery.querySelectorAll('.clickable-room-image');
+            const imageUrls = Array.from(allImages).map(img => img.src); // Create an array of URLs
+            const clickedIndex = imageUrls.findIndex(url => url === clickedImage.src); // Find the index of the clicked image
+
+            if (imageUrls.length > 0 && clickedIndex !== -1) {
+                showImageModal(imageUrls, clickedIndex); // Call with the list and index
+            }
         }
     });
     // --- Keep Initialization logic ---
@@ -198,4 +260,3 @@ document.addEventListener('DOMContentLoaded', function() {
     } else { console.error("SVG object element not found in HTML."); showError("Map display element is missing in the HTML structure."); }
 
 }); // End DOMContentLoaded
-
