@@ -40,18 +40,98 @@ h1 { color: #2c3e50; text-align: center; margin-bottom: 20px; }
 .loading, .no-results, .prompt { color: #7f8c8d; font-style: italic; text-align: center; padding: 20px 0; }
 .error { color: #e74c3c; font-weight: bold; text-align: center; padding: 20px 0; }
 
-/* --- Room Image Style --- */
+/* --- Room Image Styles --- */
+/* Container for EACH image thumbnail */
+.room-image-container {
+    width: 100px; /* Smaller size for thumbnails */
+    height: 100px; /* Smaller size for thumbnails */
+    border: 1px solid #ddd; /* Optional border for the box */
+    margin: 5px 0; /* Adjust vertical space, remove horizontal auto centering */
+    overflow: hidden; /* Hide anything that might spill out */
+    display: flex; /* Use flexbox for easy centering of the image */
+    justify-content: center; /* Center image horizontally */
+    align-items: center; /* Center image vertically */
+    background-color: #f8f8f8; /* Optional light background for empty space */
+    border-radius: 5px; /* Match image border-radius */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Match image shadow */
+}
+
+/* NEW: Container for the gallery of thumbnails */
+.room-image-gallery {
+    display: flex; /* Arrange thumbnails in a row */
+    flex-wrap: wrap; /* Allow wrapping to next line */
+    gap: 10px; /* Space between thumbnails */
+    margin-top: 5px; /* Space below the "Images:" label */
+    /* Align with the value part of detail-item */
+    /* margin-left: 110px; */ /* REMOVED: No longer push gallery to the right */
+}
+
 .room-image {
-    max-width: 100%; /* Fit container width */
-    height: auto;    /* Maintain aspect ratio */
-    margin-top: 15px; /* Space above */
-    margin-bottom: 15px; /* Space below */
-    border-radius: 5px; /* Optional rounded corners */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Optional subtle shadow */
-    display: block; /* Ensure block layout */
-    margin-left: auto; /* Center image */
-    margin-right: auto; /* Center image */
+    max-width: 100%; /* Never wider than the container */
+    max-height: 100%; /* Never taller than the container */
+    width: auto; /* Maintain aspect ratio */
+    height: auto; /* Maintain aspect ratio */
+    display: block; /* Remove extra space below image */
+    object-fit: contain; /* Scale down to fit, preserving aspect ratio (letterboxing if needed) */
+    /* Remove individual margins, border-radius, and shadow as they are on the container now */
+}
+.clickable-room-image {
+    cursor: pointer; /* Indicate the image is clickable */
+    text-decoration: none; /* Remove underline from the link */
+    color: inherit; /* Prevent the link from turning blue */
+    display: block; /* Ensure the link takes up block space if needed */
 }
 
 footer { text-align: center; margin-top: 30px; color: #7f8c8d; font-size: 0.9em; clear: both; }
 @media (max-width: 900px) { .main-content-area { flex-direction: column; } .info-column { position: static; max-height: none; overflow-y: visible; order: 1; } .map-column { order: 2; } .info-column, .map-column { flex-basis: auto; width: 100%; } #svg-container { height: 50vh; aspect-ratio: unset; } }
+
+/* --- Image Modal Styles --- */
+.modal-overlay {
+    position: fixed; /* Stay in place */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent black background */
+    display: flex; /* Use flexbox for centering */
+    justify-content: center;
+    align-items: center;
+    z-index: 2000; /* Ensure it's on top */
+    opacity: 0; /* Start hidden */
+    visibility: hidden; /* Start hidden */
+    transition: opacity 0.3s ease, visibility 0.3s ease; /* Smooth transition */
+}
+.modal-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+.modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    position: relative; /* For positioning the close button */
+    max-width: 90%;
+    max-height: 85vh; /* Limit height */
+    overflow: auto; /* Add scroll if content overflows */
+}
+.modal-image {
+    display: block; /* Remove extra space below image */
+    max-width: 100%; /* Fit container width */
+    max-height: 75vh; /* Limit image height within modal */
+    height: auto; /* Maintain aspect ratio */
+    margin: 0 auto; /* Center image */
+}
+.modal-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 2em;
+    font-weight: bold;
+    color: #555;
+    cursor: pointer;
+    line-height: 1;
+}
+.modal-close:hover {
+    color: #000;
+}

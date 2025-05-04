@@ -1,196 +1,3 @@
-// Note: displayLabDetails is defined twice in the original HTML, using the second definition.
-// Make sure this is the correct one you want.
-document.addEventListener('DOMContentLoaded', function() {
-    // --- Existing const declarations ---
-    const svgObject = document.getElementById('svg-container');
-    const infoContent = document.getElementById('info-content');
-    const searchInput = document.getElementById('search-input');
-    // ... (other consts) ...
-    let svgDoc = null;
-    let originalStyles = new Map();
-    let currentFloor = initialDefaultFloor;
-    let currentMapFile = initialMapFile;
-    let currentPathElement = null; // Keep track of the drawn path
-
-    // --- NEW: Define the entrance node ID ---
-    // *** IMPORTANT: Replace "Entrance1" with the actual ID of your entrance node in your graph/SVG ***
-    const ENTRANCE_NODE_ID = "Entrance1";
-
-    // --- displayLabDetails function (remains the same as previous step) ---
-    function displayLabDetails(data) { /* ... */ }
-
-    // --- Other helper functions (showError, showLoading, etc.) ---
-    function showError(message) { /* ... */ }
-    function showLoading() { /* ... */ }
-    function showPrompt() { /* ... */ }
-    function clearSearchResults() { /* ... */ }
-    function getElementStyles(element) { /* ... */ }
-    function resetElementStyles(element) { /* ... */ }
-
-    // --- MODIFIED: clearPath function ---
-    function clearPath() {
-        if (currentPathElement && currentPathElement.parentNode) {
-            currentPathElement.parentNode.removeChild(currentPathElement);
-        }
-        currentPathElement = null;
-        // Don't clear pathErrorDiv here, only when starting a new path request
-    }
-
-    // --- NEW: animatePath function ---
-    function animatePath(pathCoordinates) {
-        clearPath(); // Clear previous path first
-        if (!svgDoc || !svgDoc.documentElement) {
-            console.error("Cannot draw path, SVG document not ready.");
-            showError("Error: Map not ready for drawing path."); // Show error in info panel
-            return;
-        }
-        if (!pathCoordinates || pathCoordinates.length < 2) {
-            console.warn("Received invalid path data for drawing.");
-            // Optionally show a message: showError("No valid path found.");
-            return;
-        }
-
-        const polyline = svgDoc.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-        const pointsString = pathCoordinates.map(coord => `${coord[0]},${coord[1]}`).join(' ');
-
-        polyline.setAttribute('points', pointsString);
-        polyline.setAttribute('class', 'route-path'); // Base class
-
-        // Append the path to the main SVG element FIRST
-        svgDoc.documentElement.appendChild(polyline);
-        currentPathElement = polyline; // Store reference
-
-        // Calculate length
-        const length = polyline.getTotalLength();
-        console.log("Path length:", length);
-
-        // Set initial dash array and offset based on length
-        polyline.style.strokeDasharray = length;
-        polyline.style.strokeDashoffset = length;
-
-        // Force a reflow (read a property) - crucial for transition to work
-        polyline.getBoundingClientRect();
-
-        // Add the 'animate' class to trigger the transition defined in CSS
-        polyline.classList.add('animate');
-    }
-
-
-    // --- setupSvgInteractions ---
-    function setupSvgInteractions() {
-        svgDoc = null; originalStyles.clear(); clearPath(); // Clear path on map load
-        // ... (rest of the setup logic remains the same) ...
-
-        clickableElements.forEach(element => {
-            // ... (mouseenter/mouseleave listeners remain the same) ...
-
-            // --- MODIFIED: Click listener ---
-            element.addEventListener('click', function(event) {
-                event.stopPropagation();
-                const pathId = this.id; // This is the DESTINATION node ID
-                if (!pathId) return;
-
-                // --- Highlight selection (same as before) ---
-                const previousSelected = svgDoc.querySelector('.selected-element');
-                if(previousSelected) { previousSelected.classList.remove('selected-element'); resetElementStyles(previousSelected); }
-                this.classList.add('selected-element');
-                if (!originalStyles.has(pathId)) { originalStyles.set(pathId, getElementStyles(this)); }
-                this.style.fill = '#2ecc71'; this.style.stroke = '#27ae60'; this.style.strokeWidth = '1.5px'; this.style.opacity = '1';
-                // --- End Highlight ---
-
-                // --- Clear previous path and errors ---
-                clearPath();
-                // pathErrorDiv.textContent = ''; // Clear path specific errors if you had one
-
-                // --- Fetch Details (same as before) ---
-                showLoading(); // Show loading for details
-                fetch("/get-details", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path_id: pathId, floor: currentFloor }), })
-                .then(response => { if (!response.ok) { return response.json().then(err => { throw new Error(err.error || `HTTP error! Status: ${response.status}`); }).catch(() => { throw new Error(`HTTP error! Status: ${response.status}`); }); } return response.json(); })
-                .then(data => {
-                    if (data.error) {
-                        showError(data.error); // Show detail error
-                        this.classList.remove('selected-element'); resetElementStyles(this);
-                    } else {
-                        displayLabDetails(data); // Display details first
-
-                        // --- NEW: Now fetch the path ---
-                        console.log(`Requesting path from ${ENTRANCE_NODE_ID} to ${pathId} on floor ${currentFloor}`);
-                        // Optionally show a path-specific loading indicator here
-
-                        fetch("/find-path", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                start_node: ENTRANCE_NODE_ID, // Use fixed entrance
-                                end_node: pathId,             // Use clicked room ID
-                                floor: currentFloor
-                            }),
-                        })
-                        .then(pathResponse => {
-                            if (!pathResponse.ok) {
-                                return pathResponse.json().then(err => { throw new Error(err.error || `Pathfinding HTTP error! Status: ${pathResponse.status}`); })
-                                                   .catch(() => { throw new Error(`Pathfinding HTTP error! Status: ${pathResponse.status}`); });
-                            }
-                            return pathResponse.json();
-                        })
-                        .then(pathData => {
-                            // Optionally hide path loading indicator
-                            if (pathData.error) {
-                                console.error("Pathfinding error:", pathData.error);
-                                // Decide where to show path error (e.g., console or a dedicated div)
-                                // pathErrorDiv.textContent = pathData.error;
-                            } else if (pathData.path) {
-                                console.log("Path received:", pathData.path);
-                                animatePath(pathData.path); // Animate the received path
-                            } else {
-                                console.warn("Received path response without path or error.");
-                            }
-                        })
-                        .catch(pathError => {
-                            // Optionally hide path loading indicator
-                            console.error('Error finding path:', pathError);
-                            // pathErrorDiv.textContent = `Error finding path: ${pathError.message}`;
-                        });
-                        // --- End NEW path fetch ---
-                    }
-                })
-                .catch(error => { // Catch for /get-details fetch
-                    console.error('Error fetching details:', error);
-                    showError(`Failed to load details for ${pathId}. ${error.message}`);
-                    this.classList.remove('selected-element'); resetElementStyles(this);
-                });
-            }); // --- End Click Listener ---
-        }); // End clickableElements.forEach
-
-        // --- MODIFIED: SVG background click ---
-        svgDoc.documentElement.addEventListener('click', function(event) {
-            if (event.target === svgDoc.documentElement || !event.target.closest('[id]')) {
-                const selected = svgDoc.querySelector('.selected-element');
-                if (selected) { selected.classList.remove('selected-element'); resetElementStyles(selected); showPrompt(); }
-                clearPath(); // Clear path on background click
-            }
-        });
-        console.log("SVG interactions set up for:", currentMapFile);
-    } // --- End setupSvgInteractions ---
-
-    // --- switchMap ---
-    function switchMap(floorKey, mapFile, floorName) {
-        // ... (existing switchMap logic) ...
-        clearPath(); // Clear path on floor change
-        // ... (rest of switchMap) ...
-    }
-
-    // --- Search Logic (remains the same) ---
-    // ...
-
-    // --- REMOVED Pathfinding Button Listener (now triggered by room click) ---
-    // if (findPathButton) { findPathButton.addEventListener(...) }
-
-    // --- Initialization (remains the same) ---
-    // ...
-
-}); // End DOMContentLoaded
-
 document.addEventListener('DOMContentLoaded', function() {
     // --- Keep existing const declarations ---
     const svgObject = document.getElementById('svg-container');
@@ -218,24 +25,22 @@ document.addEventListener('DOMContentLoaded', function() {
              html += `<div class="detail-item"><span class="detail-label">Floor:</span> ${data.floor}</div>`;
          }
          // Add Location details
-         html += `<div class="detail-item"><span class="detail-label">Location:</span> ${data.location || 'N/A'}</div>`;
+         html += `<div class="detail-item"><span class="detail-label">Location:</span> ${data.location || 'collage of eduaction'}</div>`;
          // Add Description details
          html += `<div class="detail-item"><span class="detail-label">Description:</span> ${data.description || 'No description available.'}</div>`;
          // Add Capacity details
-         html += `<div class="detail-item"><span class="detail-label">Capacity:</span> ${data.capacity || 'N/A'} ${typeof data.capacity === 'number' ? 'people' : ''}</div>`;
 
-         // --- ADD IMAGE HERE (Moved after Capacity) ---
-         if (data.image_url) {
-             html += `<img src="${data.image_url}" alt="Image of ${data.name || `Room ${data.path_id}`}" class="room-image">`;
+         // --- ADD IMAGES HERE ---
+         if (data.image_urls && data.image_urls.length > 0) {
+             html += `<div class="detail-item"><span class="detail-label">Images:</span>`; // Label for the image section
+             html += `<div class="room-image-gallery">`; // Container for multiple thumbnails
+             data.image_urls.forEach((imageUrl, index) => {
+                 const altText = `Image ${index + 1} of ${data.name || `Room ${data.path_id}`}`;
+                 html += `<div class="room-image-container"><img src="${imageUrl}" alt="${altText}" class="room-image clickable-room-image"></div>`;
+             });
+             html += `</div></div>`; // Close gallery and detail-item
          }
          // --- End Image ---
-
-         // Add Equipment details (now comes after the image)
-         if (data.equipment && data.equipment.length > 0 && data.equipment[0] !== '') {
-             html += `<div class="detail-item"><span class="detail-label">Equipment:</span><ul class="equipment-list">${data.equipment.map(item => `<li class="equipment-item">${item}</li>`).join('')}</ul></div>`;
-         } else {
-             html += `<div class="detail-item"><span class="detail-label">Equipment:</span> None listed</div>`;
-         }
 
          // Set the final HTML
          infoContent.innerHTML = html;
@@ -250,6 +55,51 @@ document.addEventListener('DOMContentLoaded', function() {
     function clearSearchResults() { searchResultsContainer.innerHTML = ''; searchResultsContainer.style.display = 'none'; }
     function getElementStyles(element) { if (!svgDoc || !svgDoc.defaultView) return {}; const computedStyle = svgDoc.defaultView.getComputedStyle(element, null); return { fill: element.style.fill || computedStyle.getPropertyValue('fill'), stroke: element.style.stroke || computedStyle.getPropertyValue('stroke'), strokeWidth: element.style.strokeWidth || computedStyle.getPropertyValue('stroke-width'), opacity: element.style.opacity || computedStyle.getPropertyValue('opacity') }; }
     function resetElementStyles(element) { const styles = originalStyles.get(element.id); if (styles) { element.style.fill = styles.fill; element.style.stroke = styles.stroke; element.style.strokeWidth = styles.strokeWidth; element.style.opacity = styles.opacity; } else { element.style.fill = ''; element.style.stroke = ''; element.style.strokeWidth = ''; element.style.opacity = ''; } }
+
+    // --- NEW: Function to show image modal ---
+    function showImageModal(imageUrl, altText) {
+        // Remove existing modal if any
+        const existingModal = document.querySelector('.modal-overlay');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Create modal elements
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className = 'modal-overlay';
+
+        const modalContent = document.createElement('div');
+        modalContent.className = 'modal-content';
+
+        const modalClose = document.createElement('span');
+        modalClose.className = 'modal-close';
+        modalClose.innerHTML = '&times;'; // 'x' character
+
+        const modalImage = document.createElement('img');
+        modalImage.className = 'modal-image';
+        modalImage.src = imageUrl;
+        modalImage.alt = altText || 'Large room image';
+
+        // Assemble modal
+        modalContent.appendChild(modalClose);
+        modalContent.appendChild(modalImage);
+        modalOverlay.appendChild(modalContent);
+
+        // Add to body
+        document.body.appendChild(modalOverlay);
+
+        // Show modal with transition
+        requestAnimationFrame(() => modalOverlay.classList.add('visible')); // Trigger transition
+
+        // Add close listeners
+        modalClose.addEventListener('click', () => modalOverlay.remove());
+        modalOverlay.addEventListener('click', (event) => {
+            // Close only if clicking the overlay itself, not the content inside
+            if (event.target === modalOverlay) {
+                modalOverlay.remove();
+            }
+        });
+    }
 
     // --- Keep setupSvgInteractions function (no changes needed here) ---
     function setupSvgInteractions() {
@@ -326,6 +176,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     document.addEventListener('click', function(event) { if (!searchResultsContainer.contains(event.target) && event.target !== searchInput) { clearSearchResults(); } });
 
+    // --- NEW: Event listener for clickable images in the info panel (using delegation) ---
+    infoContent.addEventListener('click', function(event) {
+        // Check if the clicked element is an image with the specific class
+        if (event.target.matches('.clickable-room-image')) {
+            const imageUrl = event.target.src;
+            const altText = event.target.alt;
+            showImageModal(imageUrl, altText);
+        }
+    });
     // --- Keep Initialization logic ---
     floorSelectorButtons.forEach(button => { button.addEventListener('click', function() { switchMap(this.dataset.floor, this.dataset.mapfile, this.textContent.trim()); }); });
     const initialButton = document.querySelector('.floor-selector.active'); if (mapTitle && initialButton) { mapTitle.textContent = `${initialButton.textContent.trim()} Map`; }
