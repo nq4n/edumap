@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (clickableElements.length === 0) { console.warn("No clickable elements with IDs found in the SVG map:", currentMapFile); return; }
         clickableElements.forEach(element => {
             // --- ADDED: Skip specific non-interactive paths ---
-            const nonInteractiveIds = ['path32', 'path251'];
+            const nonInteractiveIds = ['path32', 'path251', 'g2', 'g164']; // Added g2 and g164
             if (nonInteractiveIds.includes(element.id)) {
                 console.log(`Skipping event listeners for non-interactive element: ${element.id}`);
                 return; // Don't add listeners to these IDs
