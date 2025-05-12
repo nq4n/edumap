@@ -32,7 +32,10 @@ h1, h2 {
     margin-top: 30px;
     margin-bottom: 25px; /* More space below headings */
 }
-h1 { text-align: center; margin-top: 0; }
+h1 {
+    /* text-align: center; is now handled by .header-container if desired, or can remain if h1 text itself needs centering */
+    margin-top: 0;
+}
 p { margin-bottom: 15px; }
 section { margin-bottom: 40px; }
 
@@ -46,6 +49,33 @@ section { margin-bottom: 40px; }
 }
  .tech-list li::before {
     content: '⚙️'; position: absolute; left: 0; font-size: 0.9em; top: 2px;
+}
+
+/* --- Header Logo Styles --- */
+.header-container {
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Center the logo and title together */
+    margin-bottom: 25px; /* Consistent with original h1 bottom margin */
+    margin-top: 0; /* h1's original margin-top was 0 */
+}
+
+.header-logo {
+    width: 40px;  /* Made smaller */
+    height: 40px; /* Made smaller */
+    margin-right: 10px; /* Adjusted spacing */
+    transition: transform 0.3s ease-in-out;
+}
+
+.header-logo:hover {
+    transform: translateY(-4px); /* Adjusted float for smaller size */
+}
+
+/* Adjustments for h1 when inside .header-container */
+.header-container h1 {
+    margin-top: 0; /* Ensure h1 within container has no top margin */
+    margin-bottom: 0; /* Ensure h1 within container has no bottom margin (container handles it) */
+    /* border-bottom and padding-bottom from general h1 rule will still apply */
 }
 
 /* --- NEW Team Card Styles --- */

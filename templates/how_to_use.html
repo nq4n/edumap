@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Use - Building Map Locator</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png') }}">
+    <!-- Link to about.css for similar styling -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/about.css') }}">
+    <style>
+        /* Additional specific styles for how-to-use page if needed */
+        .step-image-placeholder {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            margin: 15px 0;
+            text-align: center;
+            background-color: #f9f9f9;
+            color: #777;
+            font-style: italic;
+        }
+        .step-content {
+            margin-bottom: 20px;
+        }
+        .step-content h3 {
+            margin-top: 30px;
+            color: #3498db; /* A slightly different color for step titles */
+        }
+        /* Styles for the interactive SVG demo */
+        .svg-demo-container {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            gap: 20px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            margin-top: 15px;
+        }
+        .svg-map-demo-area {
+            flex: 2; /* Map takes more space */
+            min-width: 300px; /* Minimum width for the map */
+        }
+        .svg-map-demo-area object {
+            width: 100%;
+            height: 300px; /* Adjust as needed */
+            border: 1px solid #ccc;
+        }
+        .mock-info-panel {
+            flex: 1; /* Info panel takes less space */
+            min-width: 200px; /* Minimum width for info */
+            padding: 15px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="header-container">
+            <img src="{{ url_for('static', filename='icon.png') }}" alt="Site Logo" class="header-logo">
+            <h1>How to Use the Lab Locator</h1>
+        </div>
+
+        <section id="introduction">
+            <p>Welcome to the University Building Lab Locator! This guide will walk you through how to use the interactive map to find rooms and labs within the building.</p>
+        </section>
+
+        <section id="using-the-map">
+            <h2>Getting Started</h2>
+
+            <div class="step-content">
+                <h3>1. Selecting a Floor</h3>
+                <p>At the top of the main page, you'll see buttons for each floor (e.g., "Ground Floor," "First Floor"). Click on a floor button to load its specific map.</p>
+                <p>The currently active floor button will be highlighted.</p>
+                <div class="step-image-placeholder">
+                    <!-- Placeholder: Screenshot of floor selector buttons with one active -->
+                    Imagine a screenshot here showing the floor selector buttons.
+                </div>
+            </div>
+
+            <div class="step-content">
+                <h3>2. Finding a Room or Lab</h3>
+                <p>You have two main ways to find a room:</p>
+                <h4>A. Using the Search Bar:</h4>
+                <ul>
+                    <li>Locate the search bar, usually above the room information panel.</li>
+                    <li>Type in a room number (e.g., "1074"), a partial name (e.g., "Physics Lab"), or a room type (e.g., "Office").</li>
+                    <li>As you type, a list of matching rooms will appear below the search bar.</li>
+                    <li>Click on a room from the search results to select it. The map will highlight the room, and its details will appear in the info panel.</li>
+                </ul>
+                <div class="step-image-placeholder">
+                    <!-- Placeholder: GIF/Screenshot of using the search bar and clicking a result -->
+                    Imagine a GIF here showing someone typing in the search, results appearing, and one being clicked.
+                </div>
+
+                <h4>B. Clicking Directly on the Map:</h4>
+                <ul>
+                    <li>Move your mouse cursor over the displayed floor map.</li>
+                    <li>Clickable rooms will often change appearance slightly when you hover over them.</li>
+                    <li>Click on any room on the map to select it.</li>
+                    <li>The selected room will be highlighted (e.g., turn green), and its details will load in the info panel on the side.</li>
+                </ul>
+                <!-- Interactive SVG Demo Area -->
+                <div class="svg-demo-container">
+                    <div class="svg-map-demo-area">
+                        <p><strong>Live Demo:</strong> Click the button to see an example.</p>
+                        {% if demo_map_file %}
+                            <object id="demo-svg-map" data="{{ url_for('serve_static', filename=demo_map_file) }}" type="image/svg+xml">
+                                Your browser does not support SVG or the map file is missing.
+                            </object>
+                        {% else %}
+                            <p class="error">Demo map file not available.</p>
+                        {% endif %}
+                        <button id="run-demo-button" style="margin-top:10px;">Show Example Room Click</button>
+                    </div>
+                    <div class="mock-info-panel" id="demo-info-panel">
+                        <h4>Room Information</h4>
+                        <p><em>Click "Show Example Room Click" to see details here.</em></p>
+                    </div>
+                </div>
+                <p style="font-size: 0.9em; color: #777; margin-top: 5px;">Note: The demo above uses a sample room. On the actual map page, any clickable room will show its specific details.</p>
+
+            </div>
+
+            <div class="step-content">
+                <h3>3. Viewing Room Details</h3>
+                <p>Once a room is selected (either via search or by clicking the map), its information will be displayed in the "Info Panel." This typically includes:</p>
+                <ul>
+                    <li>Room Name/Number</li>
+                    <li>Description or Purpose</li>
+                    <li>Images of the room (if available, click thumbnails to view larger).</li>
+                </ul>
+                <div class="step-image-placeholder">
+                    <!-- Placeholder: Screenshot of the info panel filled with room details -->
+                    Imagine a screenshot here showing the info panel with example room details.
+                </div>
+            </div>
+
+            <div class="step-content">
+                <h3>4. Finding a Path Between Rooms (Pathfinding)</h3>
+                <p>Once you've familiarized yourself with finding rooms, you can also use the pathfinding feature to see the route from one location to another on the current floor.</p>
+                <p><strong>How it typically works (feature may vary):</strong></p>
+                <ul>
+                    <li><strong>Select a Starting Point:</strong> Click on a room on the map or select one from the search results to set it as your starting location. Some interfaces might have a specific "Set as Start" button in the info panel.</li>
+                    <li><strong>Select an Ending Point:</strong> Click on another room on the map or select one from search to set it as your destination. A "Set as End" or "Find Path To Here" button might appear.</li>
+                    <li><strong>View the Path:</strong> Once both start and end points are defined, the system will calculate and display the shortest walkable path between them directly on the map, often highlighted in a distinct color.</li>
+                </ul>
+                <p><em>Note: The exact method for initiating pathfinding (e.g., buttons in the info panel, right-click menu) will be clear on the main map page once the feature is fully active.</em></p>
+                <div class="step-image-placeholder">
+                    <!-- Placeholder: GIF/Screenshot of pathfinding in action -->
+                    Imagine a GIF here showing a user selecting a start room, then an end room, and a path appearing on the map.
+                </div>
+            </div>
+
+        </section>
+
+        <div class="center-link">
+            <a href="{{ url_for('index') }}" class="back-link">Back to Map</a>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const demoSvgObject = document.getElementById('demo-svg-map');
+            const runDemoButton = document.getElementById('run-demo-button');
+            const demoInfoPanel = document.getElementById('demo-info-panel');
+            let svgDoc;
+            let previouslyHighlightedRoom = null;
+
+            // IMPORTANT: Change 'path_GF-101' to an actual ID of a room element in your 'demo_map_file.svg'.
+            // This ID must be the *exact* ID attribute of the <path>, <rect>, or other shape element in the SVG.
+            // Open your SVG file in a text editor or browser inspector to find a valid ID.
+            const exampleRoomId = '1074'; // <<< --- !!! UPDATE THIS TO A VALID ID FROM YOUR SVG !!!
+
+            if (demoSvgObject) {
+                demoSvgObject.addEventListener('load', function () {
+                    try {
+                        svgDoc = demoSvgObject.contentDocument;
+                    } catch (e) {
+                        console.error("Cannot access SVG content. Check for cross-origin issues if serving from a different domain/port.", e);
+                        if (runDemoButton) runDemoButton.disabled = true;
+                        if (demoInfoPanel) demoInfoPanel.innerHTML = "<p>Error: Could not load SVG content for demo.</p>";
+                    }
+                });
+            }
+
+            if (runDemoButton && demoInfoPanel) {
+                runDemoButton.addEventListener('click', function () {
+                    if (!svgDoc) {
+                        alert('Demo SVG map is not loaded yet or failed to load.');
+                        return;
+                    }
+
+                    if (previouslyHighlightedRoom) {
+                        previouslyHighlightedRoom.style.fill = ''; // Reset previous room's fill
+                    }
+
+                    const roomElement = svgDoc.getElementById(exampleRoomId);
+                    if (roomElement) {
+                        roomElement.style.fill = 'lightgreen'; // Highlight color
+                        previouslyHighlightedRoom = roomElement;
+                        demoInfoPanel.innerHTML = `
+                            <h4>Room Information (Example)</h4>
+                            <p><strong>Room ID:</strong> ${exampleRoomId.replace('path_', '')}</p>
+                            <p><strong>Name:</strong> Example Lab / Office</p>
+                            <p><strong>Description:</strong> This is a demonstration of how room details appear when a room is selected on the map.</p>
+                            <p><strong>Capacity:</strong> 20</p>`;
+                    } else {
+                        alert(`Example room with ID '${exampleRoomId}' not found in the demo SVG. Please update the 'exampleRoomId' in the script or check your SVG file.`);
+                        demoInfoPanel.innerHTML = `<p><em>Could not find example room '${exampleRoomId}' in the SVG.</em></p>`;
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

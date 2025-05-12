@@ -88,7 +88,33 @@ def index():
                            svg_exists=svg_exists,
                            map_config=MAP_CONFIG,
                            default_floor=DEFAULT_FLOOR)
+# Add this to your app.py, likely near your other @app.route definitions
 
+
+# In your app.py
+
+# Make sure map_config is loaded and accessible here
+# For example, if it's loaded globally:
+# map_config = load_map_config(...)
+@app.route('/how-to-use')
+def how_to_use_page():
+    # Select a specific map file for the demonstration.
+    # This will try to use the map file for the first floor defined in your config.
+    # Ensure this map file exists and has identifiable rooms.
+    demo_map_file = None
+    if MAP_CONFIG: # Ensure MAP_CONFIG is not empty
+        # Get the key of the first floor in the MAP_CONFIG dictionary
+        first_floor_key = next(iter(MAP_CONFIG))
+        if first_floor_key in MAP_CONFIG and 'file' in MAP_CONFIG[first_floor_key]:
+            demo_map_file = MAP_CONFIG[first_floor_key]['file'] # e.g., "maps/ground_floor.svg"
+
+    return render_template(
+        'how_to_use.html',
+        title="How to Use",
+        demo_map_file=demo_map_file # Pass the chosen map file to the template
+    )
+
+# ... (rest of your app.py code)
 @app.route("/about")
 def about_page():
     return render_template("about.html")

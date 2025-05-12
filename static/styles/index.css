@@ -252,4 +252,29 @@ footer { text-align: center; margin-top: 30px; color: #7f8c8d; font-size: 0.9em;
 /* General hover effect for OTHER interactive elements */
 
  
- .modal-close:hover { color: #000; background: rgba(255, 255, 255, 0.9); }
+ .modal-close:hover { color: #000; background: rgba(255, 255, 255, 0.9); }/* --- Header Logo Styles (in index.css) --- */
+ .header-container {
+     display: flex;
+     align-items: center;
+     justify-content: center; /* Center the logo and title together */
+     margin-top: 20px; /* Adjust as needed */
+     margin-bottom: 20px; /* Adjust as needed */
+ }
+ 
+ .header-logo {
+     width: 40px;  /* This sets the smaller width */
+     height: 40px; /* This sets the smaller height */
+     margin-right: 10px; /* Space between logo and title */
+     transition: transform 0.3s ease-in-out;
+ }
+ 
+ .header-logo:hover {
+     transform: translateY(-4px); /* Float up effect */
+ }
+ 
+ /* Adjustments for h1 when inside .header-container in index.css */
+ .header-container h1 {
+     margin-top: 0;
+     margin-bottom: 0;
+ }
+ 
