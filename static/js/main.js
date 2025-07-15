@@ -9,9 +9,20 @@ document.addEventListener('DOMContentLoaded', function() {
     let svgDoc = null;
     let originalStyles = new Map();
 
+    // --- NEW: Constants and variables for routing ---
+    const BUILDING_SVG_ID = 'building'; // As requested
+    const DEFAULT_ROOM_FOR_PATH = '1075'; // As requested
+    const TARGET_ELEMENT_FOR_PATH = 'path310'; // NEW: Specific target element for the path
+    let currentRouteLine = null; // To keep track of the drawn line
+
+    // ENTRANCE_COORDINATES is no longer needed as we target an element.
+
     // --- Use variables passed from index.html ---
-    let currentFloor = initialDefaultFloor;
-    let currentMapFile = initialMapFile;
+    // These are expected to be globally defined in index.html before this script runs.
+    // e.g., <script> var initialDefaultFloor = 'GF'; var initialMapFile = 'maps/gf.svg'; </script>
+    let currentFloor = typeof initialDefaultFloor !== 'undefined' ? initialDefaultFloor : null;
+    let currentMapFile = typeof initialMapFile !== 'undefined' ? initialMapFile : null;
+
 
     // --- MODIFIED: displayLabDetails ---
     function displayLabDetails(data) {
@@ -57,6 +68,125 @@ document.addEventListener('DOMContentLoaded', function() {
     function getElementStyles(element) { if (!svgDoc || !svgDoc.defaultView) return {}; const computedStyle = svgDoc.defaultView.getComputedStyle(element, null); return { fill: element.style.fill || computedStyle.getPropertyValue('fill'), stroke: element.style.stroke || computedStyle.getPropertyValue('stroke'), strokeWidth: element.style.strokeWidth || computedStyle.getPropertyValue('stroke-width'), opacity: element.style.opacity || computedStyle.getPropertyValue('opacity') }; }
     function resetElementStyles(element) { const styles = originalStyles.get(element.id); if (styles) { element.style.fill = styles.fill; element.style.stroke = styles.stroke; element.style.strokeWidth = styles.strokeWidth; element.style.opacity = styles.opacity; } else { element.style.fill = ''; element.style.stroke = ''; element.style.strokeWidth = ''; element.style.opacity = ''; } }
 
+    // --- NEW: Helper to get or create <defs> element in SVG ---
+    function getOrCreateDefs(svgDocument) {
+        if (!svgDocument) return null;
+        let defs = svgDocument.querySelector('defs');
+        if (!defs) {
+            defs = svgDocument.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            const svgRoot = svgDocument.documentElement;
+            if (svgRoot) {
+                 svgRoot.insertBefore(defs, svgRoot.firstChild); // Insert defs as the first child
+            } else {
+                console.error("SVG root element not found, cannot add defs.");
+                return null;
+            }
+        }
+        return defs;
+    }
+
+    // --- NEW: Helper to ensure an arrowhead marker is defined in the SVG ---
+    function ensureArrowheadMarker(svgDocument, color = 'green') {
+        if (!svgDocument) return null;
+        const markerId = 'route-arrowhead';
+        if (svgDocument.getElementById(markerId)) return markerId; // Already exists
+
+        const defs = getOrCreateDefs(svgDocument);
+        if (!defs) return null;
+
+        const marker = svgDocument.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        marker.setAttribute('id', markerId);
+        marker.setAttribute('markerWidth', '10');
+        marker.setAttribute('markerHeight', '7');
+        marker.setAttribute('refX', '8'); // Position so the tip of arrow is at the line end
+        marker.setAttribute('refY', '3.5');
+        marker.setAttribute('orient', 'auto-start-reverse'); // Arrow points towards the start of the line segment it's attached to
+
+        const polygon = svgDocument.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        polygon.setAttribute('points', '0 0, 10 3.5, 0 7'); // Triangle shape
+        polygon.setAttribute('fill', color);
+
+        marker.appendChild(polygon);
+        defs.appendChild(marker);
+        return markerId;
+    }
+
+    // --- NEW: Function to clear any existing route path ---
+    function clearRoutePath() {
+        if (svgDoc && currentRouteLine) {
+            if (currentRouteLine.parentNode) {
+                currentRouteLine.parentNode.removeChild(currentRouteLine);
+            }
+            currentRouteLine = null;
+            // console.log("Route path cleared."); // Optional: for debugging
+        }
+    }
+
+    // --- MODIFIED: Function to draw a path between two SVG elements ---
+    function drawRoutePath(startElementId, endElementId) {
+        if (!svgDoc) {
+            console.warn("SVG document not ready, cannot draw path.");
+            return;
+        }
+        clearRoutePath(); // Clear any previous path first
+
+        const startElement = svgDoc.getElementById(startElementId);
+        const endElement = svgDoc.getElementById(endElementId);
+        // const buildingElement = svgDoc.getElementById(BUILDING_SVG_ID); // For future path constraints
+
+        if (!startElement) {
+            console.warn(`Start element with ID '${startElementId}' not found. Cannot draw path.`);
+            return;
+        }
+        if (!endElement) {
+            console.warn(`End element with ID '${endElementId}' not found. Cannot draw path.`);
+            return;
+        }
+
+        // Get center of the start element using getBBox()
+        const startBBox = startElement.getBBox();
+        const startCenterX = startBBox.x + startBBox.width / 2;
+        const startCenterY = startBBox.y + startBBox.height / 2;
+
+        // Get center of the end element using getBBox()
+        const endBBox = endElement.getBBox();
+        const endCenterX = endBBox.x + endBBox.width / 2;
+        const endCenterY = endBBox.y + endBBox.height / 2;
+
+        // Create the line element
+        const line = svgDoc.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', startCenterX.toString());
+        line.setAttribute('y1', startCenterY.toString());
+        line.setAttribute('x2', endCenterX.toString()); // Target: End element X
+        line.setAttribute('y2', endCenterY.toString()); // Target: End element Y
+
+        const lineColor = '#FF007F'; // A distinct color like magenta or deep pink
+        line.setAttribute('stroke', lineColor);
+        line.setAttribute('stroke-width', '2.5'); // Make it reasonably thick
+        line.setAttribute('stroke-linecap', 'round'); // Ensures line ends are not cut off abruptly
+
+        // Add arrowhead pointing towards the end element
+        const markerId = ensureArrowheadMarker(svgDoc, lineColor);
+        if (markerId) {
+            line.setAttribute('marker-end', `url(#${markerId})`); // Arrow at the endElement's end
+        }
+
+        currentRouteLine = line;
+        if (svgDoc.documentElement) {
+            svgDoc.documentElement.appendChild(currentRouteLine); // Append to the main SVG element
+            console.log(`Drew route line from ${startElementId} (center: ${startCenterX.toFixed(1)},${startCenterY.toFixed(1)}) to ${endElementId} (center: ${endCenterX.toFixed(1)},${endCenterY.toFixed(1)}).`);
+        } else {
+            console.error("SVG root element not found, cannot append line.");
+        }
+
+        // TODO for future enhancements:
+        // 1. Pathfinding: Implement an algorithm (e.g., A* based on a navmesh or grid from SVG paths)
+        //    to find a route that:
+        //    a. Stays within the 'buildingElement' boundaries.
+        //    b. Avoids intersecting other room paths or obstacles.
+        //    c. Connects to the nearest or most logical entrance if multiple exist.
+    }
+    // --- End MODIFIED drawRoutePath ---
     // --- NEW: Function to show image modal ---
     // --- MODIFIED: Function to show image slider modal ---
     function showImageModal(imageUrls, startIndex) {
@@ -181,13 +311,48 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.style.fill = '#02c7ffff'; this.style.stroke = '#ffffffff'; this.style.strokeWidth = '1.5px'; this.style.opacity = '1';
                 showLoading();
                 fetch("/get-details", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path_id: pathId, floor: currentFloor }), })
-                .then(response => { if (!response.ok) { return response.json().then(err => { throw new Error(err.error || `HTTP error! Status: ${response.status}`); }).catch(() => { throw new Error(`HTTP error! Status: ${response.status}`); }); } return response.json(); })
-                .then(data => { if (data.error) { showError(data.error); this.classList.remove('selected-element'); resetElementStyles(this); } else { displayLabDetails(data); } })
-                .catch(error => { console.error('Error fetching details:', error); showError(`Failed to load details for ${pathId}. ${error.message}`); this.classList.remove('selected-element'); resetElementStyles(this); });
+                    .then(response => { if (!response.ok) { return response.json().then(err => { throw new Error(err.error || `HTTP error! Status: ${response.status}`); }).catch(() => { throw new Error(`HTTP error! Status: ${response.status}`); }); } return response.json(); })
+                    .then(data => {
+                        if (data.error) {
+                            showError(data.error); this.classList.remove('selected-element'); resetElementStyles(this);
+                            clearRoutePath(); // Clear path on error
+                        } else {
+                            displayLabDetails(data);
+                            // --- MODIFIED: Call drawRoutePath or clear it ---
+                            if (pathId === DEFAULT_ROOM_FOR_PATH) {
+                                if (svgDoc && svgDoc.getElementById(TARGET_ELEMENT_FOR_PATH)) {
+                                    drawRoutePath(DEFAULT_ROOM_FOR_PATH, TARGET_ELEMENT_FOR_PATH);
+                                } else {
+                                    console.warn(`Target element ${TARGET_ELEMENT_FOR_PATH} for routing not found on map ${currentMapFile}.`);
+                                    clearRoutePath();
+                                }
+                            } else {
+                                clearRoutePath(); // Clear path if a different room is selected
+                            }
+                        }
+                    })
+                    .catch(error => { console.error('Error fetching details:', error); showError(`Failed to load details for ${pathId}. ${error.message}`); this.classList.remove('selected-element'); resetElementStyles(this); clearRoutePath(); });
             });
         });
-        svgDoc.documentElement.addEventListener('click', function(event) { if (event.target === svgDoc.documentElement || !event.target.closest('[id]')) { const selected = svgDoc.querySelector('.selected-element'); if (selected) { selected.classList.remove('selected-element'); resetElementStyles(selected); showPrompt(); } } });
+        svgDoc.documentElement.addEventListener('click', function(event) { if (event.target === svgDoc.documentElement || (event.target.correspondingUseElement === null && !event.target.closest('[id]'))) { const selected = svgDoc.querySelector('.selected-element'); if (selected) { selected.classList.remove('selected-element'); resetElementStyles(selected); showPrompt(); clearRoutePath(); } } });
+
         console.log("SVG interactions set up for:", currentMapFile);
+
+        // --- NEW: Attempt to draw path to DEFAULT_ROOM_FOR_PATH if it exists on the current map ---
+        if (svgDoc && svgDoc.getElementById(DEFAULT_ROOM_FOR_PATH)) {
+            // This will draw the path when any map containing this room ID is loaded.
+            // Ensure DEFAULT_ROOM_FOR_PATH and ENTRANCE_COORDINATES are correctly set for this behavior.
+            console.log(`Map ${currentMapFile} loaded. Attempting to draw default route to room ${DEFAULT_ROOM_FOR_PATH}.`);
+            drawPathToEntrance(DEFAULT_ROOM_FOR_PATH);
+        } else if (svgDoc) {
+            // If the default room is not on this map, ensure any pre-existing route line is cleared.
+            // This is important if DEFAULT_ROOM_FOR_PATH was displayed on a previously viewed map.
+            clearRoutePath();
+            if (DEFAULT_ROOM_FOR_PATH) { // Only log if a default room is configured
+                console.log(`Default room ${DEFAULT_ROOM_FOR_PATH} not found on map ${currentMapFile}. No default path drawn, existing path cleared.`);
+            }
+        }
+        // --- END NEW ---
     }
 
     // --- Keep switchMap function (no changes needed here) ---
@@ -197,6 +362,7 @@ document.addEventListener('DOMContentLoaded', function() {
         currentFloor = floorKey; currentMapFile = mapFile;
         floorSelectorButtons.forEach(btn => { btn.classList.toggle('active', btn.dataset.floor === floorKey); });
         if (mapTitle) { mapTitle.textContent = `${floorName} Map`; }
+        clearRoutePath(); // Clear path when switching maps
         showPrompt(); searchInput.value = ''; clearSearchResults();
         if (svgObject) { const staticUrl = `/static/${mapFile}`; svgObject.setAttribute('data', staticUrl); }
         else { showError("Map container object not found."); }
@@ -256,14 +422,53 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     // --- Keep Initialization logic ---
     floorSelectorButtons.forEach(button => { button.addEventListener('click', function() { switchMap(this.dataset.floor, this.dataset.mapfile, this.textContent.trim()); }); });
-    const initialButton = document.querySelector('.floor-selector.active'); if (mapTitle && initialButton) { mapTitle.textContent = `${initialButton.textContent.trim()} Map`; }
+
     if (svgObject) {
          svgObject.addEventListener('load', setupSvgInteractions);
-         svgObject.addEventListener('error', function() { console.error("Failed to load SVG file:", svgObject.data); showError(`Failed to load map: ${currentMapFile}`); });
-         // Initial prompt message display
+         svgObject.addEventListener('error', function() {
+            console.error("Failed to load SVG file:", svgObject.data);
+            // Use currentMapFile for error message as it reflects the intended file
+            showError(`Failed to load map: ${currentMapFile || 'Unknown'}`);
+        });
+
+        // Determine and load the initial map
+        let initialFloorKeyToLoad = currentFloor; // From global initialDefaultFloor
+        let initialMapFileToLoad = currentMapFile; // From global initialMapFile
+        let initialFloorName = '';
+
+        if (initialFloorKeyToLoad && initialMapFileToLoad) {
+            const initialButton = Array.from(floorSelectorButtons).find(btn => btn.dataset.floor === initialFloorKeyToLoad);
+            if (initialButton) {
+                initialFloorName = initialButton.textContent.trim();
+            } else {
+                console.warn(`Initial default floor button for key '${initialFloorKeyToLoad}' not found. Map title might be generic.`);
+                initialFloorName = `Floor ${initialFloorKeyToLoad}`; // Fallback name
+            }
+        } else {
+            // Fallback if initialDefaultFloor/initialMapFile are not provided from index.html
+            console.warn("initialDefaultFloor or initialMapFile not provided from index.html. Falling back to the first button or one with 'active' class.");
+            const fallbackButton = document.querySelector('.floor-selector.active') || floorSelectorButtons[0];
+            if (fallbackButton) {
+                initialFloorKeyToLoad = fallbackButton.dataset.floor;
+                initialMapFileToLoad = fallbackButton.dataset.mapfile;
+                initialFloorName = fallbackButton.textContent.trim();
+            }
+        }
+
+        if (initialFloorKeyToLoad && initialMapFileToLoad) {
+            // Update global currentFloor and currentMapFile if they were determined by fallback,
+            // then call switchMap to load it and update UI.
+            currentFloor = initialFloorKeyToLoad;
+            currentMapFile = initialMapFileToLoad;
+            switchMap(initialFloorKeyToLoad, initialMapFileToLoad, initialFloorName);
+        } else {
+            showError("Map configuration error: No initial floor/map could be determined.");
+            if (mapTitle) mapTitle.textContent = "Map Error";
+        }
+
          showPrompt();
-         // Setup interactions after a short delay or if already loaded
-         setTimeout(() => { if (svgObject.contentDocument && svgObject.contentDocument.readyState === 'complete') { console.log("SVG already loaded, setting up interactions for:", currentMapFile); setupSvgInteractions(); } else if (!svgObject.contentDocument) { console.warn("Initial SVG contentDocument not ready, waiting for load event."); } }, 100);
+         // The 'load' event on svgObject is the primary trigger for setupSvgInteractions.
+         // The setTimeout for checking pre-loaded SVGs is generally not needed if 'data' attribute is set and 'load' event is handled.
     } else { console.error("SVG object element not found in HTML."); showError("Map display element is missing in the HTML structure."); }
 
 }); // End DOMContentLoaded
