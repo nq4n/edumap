@@ -21,7 +21,8 @@ ROOM_IMAGES_FOLDER = 'photoLab'
 
 MAP_CONFIG = {
     'ground': {'file': 'EduBuild/ground.svg', 'name': 'Ground Floor'},
-    'first': {'file': 'EduBuild/first.svg', 'name': 'First Floor'}
+    'first': {'file': 'EduBuild/first.svg', 'name': 'First Floor'} ,
+    'test' : {'file': 'EduBuild/test.svg', 'name': 'Test Floor'},
 }
 DEFAULT_FLOOR = 'ground'
 
@@ -367,7 +368,7 @@ if __name__ == "__main__":
     os.makedirs(static_folder_path, exist_ok=True)
 
     # --- MODIFIED: Check for default floor's Excel file ---
-    default_excel_file = f"data_{DEFAULT_FLOOR}.xlsx"
+    default_excel_file = f"{DEFAULT_FLOOR}.xlsx"
     full_excel_path = os.path.join(static_folder_path, default_excel_file)
     if not os.path.exists(full_excel_path):
          print(f"CRITICAL WARNING: Default floor Excel file '{default_excel_file}' not found at {full_excel_path}")
