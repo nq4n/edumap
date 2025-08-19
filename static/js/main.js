@@ -471,4 +471,85 @@ document.addEventListener('DOMContentLoaded', function() {
          // The setTimeout for checking pre-loaded SVGs is generally not needed if 'data' attribute is set and 'load' event is handled.
     } else { console.error("SVG object element not found in HTML."); showError("Map display element is missing in the HTML structure."); }
 
+    // --- NEW: Geolocation Logic ---
+    const getLocationBtn = document.getElementById('get-location-btn');
+    const userLocationDot = document.getElementById('user-location-dot');
+
+    // The calibration points from test.json
+    const calibrationPoints = [
+      { "name": "P1", "lat": 22.892346, "lon": 58.015206, "x": 0.963,  "y": 1.060 },
+      { "name": "P2", "lat": 22.892280, "lon": 58.015430, "x": 77.844, "y": 0.096 },
+      { "name": "P3", "lat": 22.892142, "lon": 58.015143, "x": 0.578,  "y": 76.302 },
+      { "name": "P4", "lat": 22.892063, "lon": 58.015336, "x": 78.229, "y": 76.110 }
+    ];
+
+    function convertGeoToSvg(lat, lon, points) {
+        let totalWeight = 0;
+        let svgX = 0;
+        let svgY = 0;
+
+        points.forEach(p => {
+            const dist = Math.sqrt(Math.pow(lat - p.lat, 2) + Math.pow(lon - p.lon, 2));
+            if (dist === 0) {
+                svgX = p.x;
+                svgY = p.y;
+                return;
+            }
+            const weight = 1 / dist;
+            svgX += p.x * weight;
+            svgY += p.y * weight;
+            totalWeight += weight;
+        });
+
+        if (totalWeight === 0) {
+            return { x: 0, y: 0 };
+        }
+
+        return { x: svgX / totalWeight, y: svgY / totalWeight };
+    }
+
+    getLocationBtn.addEventListener('click', () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(
+                (position) => {
+                    console.log('Position:', position);
+                    const { latitude, longitude } = position.coords;
+
+                    // Convert the geographic coordinates to SVG coordinates
+                    const svgCoords = convertGeoToSvg(latitude, longitude, calibrationPoints);
+                    console.log('SVG Coords:', svgCoords);
+
+                    // Get the SVG container and its viewbox
+                    const svgContainer = document.getElementById('svg-container');
+                    const svg = svgContainer.contentDocument.querySelector('svg');
+                    if (!svg) {
+                        console.error('SVG not loaded or accessible');
+                        return;
+                    }
+                    const viewBox = svg.viewBox.baseVal;
+                    console.log('ViewBox:', viewBox);
+                    console.log('SVG Container Client Width:', svgContainer.clientWidth);
+                    console.log('SVG Container Client Height:', svgContainer.clientHeight);
+
+
+                    // Calculate the position of the dot in pixels
+                    const pixelX = (svgCoords.x / viewBox.width) * svgContainer.clientWidth;
+                    const pixelY = (svgCoords.y / viewBox.height) * svgContainer.clientHeight;
+                    console.log('Pixel X:', pixelX);
+                    console.log('Pixel Y:', pixelY);
+
+                    // Position the dot
+                    userLocationDot.style.left = `${pixelX}px`;
+                    userLocationDot.style.top = `${pixelY}px`;
+                    userLocationDot.style.display = 'block';
+                },
+                (error) => {
+                    console.error('Error getting location:', error);
+                    alert('Could not get your location. Please make sure you have enabled location services.');
+                }
+            );
+        } else {
+            alert('Geolocation is not supported by your browser.');
+        }
+    });
 }); // End DOMContentLoaded

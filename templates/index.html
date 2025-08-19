@@ -29,6 +29,7 @@
         <div class="main-content-area">
             <div class="info-column">
                 <div class="search-container">
+                    <button id="get-location-btn">Get My Location</button>
                     <input type="search" id="search-input" placeholder="Search by room number, name, or type...">
                     <div id="search-results"></div>
                 </div>
@@ -46,6 +47,7 @@
                     <object id="svg-container" data="{{ url_for('serve_static', filename=default_map_file) }}" type="image/svg+xml">
                         Your browser does not support SVG or the map file is missing.
                     </object>
+                    <div id="user-location-dot"></div>
                     {% else %}
                     <p class="error">Default building map file ({{ default_map_file or 'N/A' }}) not found or not configured.</p>
                     {% endif %}
