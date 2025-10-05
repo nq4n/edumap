@@ -22,7 +22,7 @@ ROOM_IMAGES_FOLDER = 'photoLab'
 MAP_CONFIG = {
     'ground': {'file': 'EduBuild/ground.svg', 'name': 'Ground Floor'},
     'first': {'file': 'EduBuild/first.svg', 'name': 'First Floor'} ,
-    'test' : {'file': 'EduBuild/test.svg', 'name': 'Test Floor'},
+
 }
 DEFAULT_FLOOR = 'ground'
 
